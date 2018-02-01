@@ -97,10 +97,17 @@ homo %>%
 Please provide the answer below:
 
 ### 2.1  
+CI <- 1.95*sd(df$vowel.duration.ms)/sqrt(length(df$vowel.duration.ms))
 
 ## Calculate 95% confidence interval for mean vowel duration variable for heterosexual speakers.
 
 ### 2.2  
+orien_and_dur <- df[c("orientation","vowel.duration.ms")]
+
+
+dur <- new_data[orien_and_dur$orientation == "hetero", "vowel.duration.ms"]
+
+CI_n <- 1.95*sd(dur)/sqrt(length(dur))
 
 ## If you have time, you can play with some basic descriptive plots. You can provide your code below:  
 
