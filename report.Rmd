@@ -1,0 +1,311 @@
+---
+title: "Speech emotion analysis: extralingustic feature influence on embarrasment detection for French and Russian"
+date: 10.06.2018
+authors: Natalia Borisenko and Irina Nikishina
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+
+---
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Materials  
+[Link to the data set](https://github.com/lilaspourpre/Linguistic-data-quantitative-analysis-and-visualisation/blob/master/project/dataset_embarr.csv) (csv file)  
+[Link to audio](https://github.com/lilaspourpre/Linguistic-data-quantitative-analysis-and-visualisation/tree/master/project/audio)    
+[Link to questionnaire](https://docs.google.com/forms/d/e/1FAIpQLSf6uuyYNl8ZlWfX3knrF-04q35faGCwP83PXebmEK59VTFQCA/viewform)  
+
+## Introduction  
+
+### Describe the phenomenon.
+Embarrassment as other emotions mainly is the object of studies of psychology. For instance, (Goffman, 1967) describes embarrassment as expression of opinion about our actions that do not suit the situation. (Borg et al., 1988) understand embarrassment as a type of shame, (Edelman, 1985) treats embarrassment as anxiety. The idea of these studies was to determine the notion of embarrassment and to understand the reasons of it. To add, these studies agree that there is such emotion as embarrassment but no study highlight if people can understand whether a person is embarrassed. There are several ways to understand it. First, as signals of embarrassment the mimic, the actions of a person can be considered. That is what was done by psychologists. Secondly, the linguistics features can be taken into account. That was described in the previous study that is mentioned below. However, the success in understanding embarrassment might base not only on the ability of a speaker to express it but also on the ability of a listener to understand it. In this study we try to understand if there is the connection between listeners’ characteristics as gender, age, level of education and foreign language command and this ability.
+
+### Mention some previous research (optional).
+This research is not started from scratch as it is based on the previous research of embarrassment on speech that was conducted as a part of the Research Seminar under the supervision of Bukharov V. M. during BA program. However, the current research is different from the previous one as extra linguistics factors are found under the examination. To add, the previous study was extended so in the current research not only Russian but also French is taken into consideration that allows to check whether the language command and the language of audios might affect the level of embarrassment recognition.  
+
+## Research hypothesis  
+
+As it has been already said we assume that mean embarrassment recognition value (hereinafter MERV) might or might not depend on extra linguistic factors: gender, age, education and foreign language aquisition so as the hypothesis we consider that the mentioned extralinguistic factors do not influence on MERV. This means that people from different categories might be successfulor unsuccessful in MERV in the same way. 
+To add, in orfer to check this hypothesis we have to evaluate the results for each audio so we standardize the values of MERV by dividing each by 5 as we believe that MERV is equal to 5.  
+
+## Data  
+
+Our dataset comprises 216 responces from questionnaire (described below). Our .csv file contains 216 rows and 25 columns.
+
+* Our dependent variable is MERV -- mean embarrassement recognition value.
+We do not only read the data but also we transform it as was mentioned above.
+We do not only read the data but also standartize it to make the futher work easier. For example, the English and French columns are tharnsformed to the same format. To add, the value column was changed so that might help to make the results more reliable.
+```{r}
+library(tidyr)
+install.packages('irr')
+library(irr)
+embarr <- read.csv("C:/Users/User/Desktop/dataset_embarr.csv")
+embarr <- read.csv("C:/Users/User/Desktop/dataset_embarr.csv")
+embarr$English <- ifelse(embarr$English==1, "English yes", "English no")
+embarr$French <- ifelse(embarr$French==1, "French yes", "French no")
+embarr$Age <- as.factor(as.character(embarr$Age))
+embarr$English <- as.factor(embarr$English)
+embarr$French <- as.factor(embarr$French)
+embarr$ID <- c(1:length(embarr$Age))
+embarr[, 6:25] <- data.frame(t(apply(embarr[,  6:25], 1, function(x) {x / 5})))
+```
+Also, for the following plots it might be a good idea to transform the data to long format and to add a new column that contains the speaker.
+```{r}
+#transforming the data to long format
+embarr %>% 
+  gather(Phrase, Value, A1.1:E2.2) ->
+embarr.long
+
+#adding the Speaker 
+embarr.long %>% 
+  mutate(speaker = str_extract(Phrase, "[12]\\.[12]"),
+         speaker_1 = str_extract(speaker, "[12]$"),
+         speaker_2 = str_extract(speaker, "^[12]"),
+         speaker = if_else(speaker_1 == 1 & 
+                             speaker_2 == 1, 
+                           "Speaker 1",
+                           if_else(speaker_1 == 1 &
+                                     speaker_2 == 2,
+                                   "Speaker 2",
+                                   if_else(speaker_1 == 2 &
+                                             speaker_2 == 1,
+                                           "Speaker 3", 
+                                           "Speaker 4")))) %>% 
+  select(-speaker_1, -speaker_2) ->
+           embarr.long
+```
+Thus, we have 26 columns in total.
+
+* Our predictor variables are mostly categorical:
+1) age (categorical):
+* 18-25
+* 25-30
+* 30-35
+* 35-40
+2) gender (categorical):
+* M
+* F
+3) education (categorical):
+* Secondary
+* Higher
+4) English knowledge (binary, categorical):
+* 0 (no)
+* 1 (yes)
+5) French knowledge (binary, categorical):
+* 0 (no)
+* 1 (yes)
+
+### Data collection and annotation   
+
+From our previous research we took the following 5 phrases with possible embarrassment features:
+
+* _Неужели этот огромный букет мне?_
+* _Я написал(а) эту диссертацию за 10 дней._
+* _Ну что вы, не надо было, я того не стою._
+* _Перестаньте, мне было совсем не трудно._
+* _Спасибо, без вашей помощи я бы не справился(ась)._
+
+Each of those phrases were voiced and recorded by 2 native Russian speakers (M and F, 22 y.o.). 
+However, in the current research we compare emberrassment detection for Russian and French, so we translated the above mentioned sentences (with a C1-level certificated interpreter and further native speaker revision) into French. Then we asked 2 native French speakers (M and F, 22 y.o.) to record the phrases. Source and target sentences are provided below:
+
+| Russian | French |
+| --- | --- |
+|Неужели этот огромный букет мне? | Est-ce que ce gros bouquet de fleurs est vraiment pour moi?|
+|Я написал(а) эту диссертацию за 10 дней. | J'ai écrit cette thèse en 10 jours|
+|Ну что вы, не надо было, я того не стою.| Arrêtez, vous n'auriez pas dû faire ça, je n'en vaux pas la peine|
+|рестаньте, мне было совсем не трудно.| Allez, ça va, c'était pas du tout difficile pour moi |
+|Спасибо, без вашей помощи я бы не справился(ась)| Merci beaucoup pour votre aide, je n'aurais jamais réussi seul|
+
+After that, we ran a questionnaire with 5 questions of "hard data" type (age, gender, education, foreign languages) and 20 questions about embarrassment measurement in audios. The respondents we suggested to listen to each audio (with Russian and French records) and to score embarrassment expression level in each audio from 0 to 5.
+
+We also discovered the appropriate number of respondents considering the amount of parameters (predictor variables) and with the usage of power test. We use the following code:
+
+```{power test}
+power.anova.test(groups = 64, between.var = 1, within.var = 3,
+                 power = .95)
+```
+Number of groups = 2(levels of gender) * 4 (levels of age) * 2 (levels of education) * 2 (levels of English aquisition) * 2 (levels of french aquisition) = 2 * 4 * 2 * 2 * 2 = 2^6 = 64. We suppose betweeb.var=1 and within.var as signifiant. Thus, our minimum number of respondents should not be less than 3 * 64 = 192. By the start of our research, the questionnaire included 216 responces. 
+
+However, before converting our results to .csvfile we slightly change questionnaire format to machine-readable and interpretable format. For instance, question about language aquisition has the form of multiple choice (English, French, German and other foreign languages), while for analysis we selected binary type for English and French columns/parameters/features. Moreover, we divided respondents into 5 different gropups by age.
+
+It is rather obvious that our dataset is not as brilliant as it might seem at first glance. Binary type of language aquisition does not represent the actual language knowledge. The same problem might appear with age. 
+
+### Data considerations
+First of all, the data should be standardized. Secodly, to calculate lm we have to transform the data to long format. To add, we change the way of answer presenting of the categodies as Education, the language command (ability to speak foreign languages). So the raw data cannot be used. To add, as we are going to see below the data cannot provide statistically significant results that may help us to explain different dependencies and build models using the data.
+
+
+## R libraries in use
+```{r libraries}
+library(tidyverse)
+library(ggplot)
+library(lme4)
+```
+
+
+## Analysis: descriptive statistics
+
+First of all, we counted all posible statistical info:
+
+| Age | NumOfRespondents |
+| --- | --- |
+| 18-25| 57 |
+| 26-30 | 52 |
+| 31-35 | 52 |
+| 36-40 | 55 |
+
+
+| Gender | NumOfRespondents |
+| --- | --- |
+| F | 107 |
+| M | 109 |
+
+| Education | NumOfRespondents |
+| --- | --- |
+| Higher | 112 |
+| Secondary | 104 |
+
+| English | NumOfRespondents |
+| --- | --- |
+| 0 | 103 |
+| 1 | 113 |
+
+| French | NumOfRespondents |
+| --- | --- |
+| 0 | 109 |
+| 1 | 107 |
+First, we took a look at the distrubution of the average values for each speaker and for each audio.
+```{r}
+embarr %>%
+  select(6:25) %>%
+  colMeans() -> means.embarr
+as.data.frame(means.embarr)
+means <- data.frame(questions = c('A1.1', 'A1.2', 'B1.1', 'B1.2', 'C1.1', 'C1.2', 'D1.1', 'D1.2', 'E1.1', 'E1.2', 'A2.1', 'A2.2', 'B2.1', 'B2.2', 'C2.1', 'C2.2', 'D2.1', 'D2.2', 'E2.1', 'E2.2'), speaker=c("Speaker 1", "Speaker 2", "Speaker 1", "Speaker 2", "Speaker 1", "Speaker 2", "Speaker 1", "Speaker 2", "Speaker 1", "Speaker 2", "Speaker 3", "Speaker 4", "Speaker 3", "Speaker 4", "Speaker 3", "Speaker 4", "Speaker 3", "Speaker 4", "Speaker 3", "Speaker 4"),  means = means.embarr)
+```
+
+```{r}
+ggplot(means,aes(x = speaker,y = means)) + 
+    geom_bar(aes(fill = speaker),stat = "identity",position = "dodge")+ theme_bw()+labs(title = "Average values for each speaker")
+```
+Also, we can check how good was the speaker in faking the emotion by compring the results of different groups.
+
+```{r}
+embarr.long  %>% 
+  ggplot(aes(Education,Value, fill=Education)) +
+  geom_boxplot() +
+  facet_wrap(~speaker)+ theme_bw()
+```
+It is seen from the plot that the fourth speaker has higher scores. To add, people with secondary education give the higher marks for the perfomance of the second speaker and thos group hives average scores whereas the group of higher education tends to give lower and average marks.
+```{r}
+embarr.long  %>% 
+  ggplot(aes(Gender,Value, fill=Gender)) +
+  geom_boxplot() +
+  facet_wrap(~speaker)+ theme_bw()
+```
+According to the gender distribution the preference goes to the second speaker as females think that the speach of the second speaker has more emotions. However, the results of the forth one are still high.  
+```{r}
+embarr.long  %>% 
+  ggplot(aes(English,Value, fill=English)) +
+  geom_boxplot() +
+  facet_wrap(~speaker)+theme_bw()
+```
+The same pattern can be seen in the distribution by the ability to speak English. It should be said that speaker 3 who is French has lower scores among people who can speak English so it might be the knowlage of a foreign language might influence on the results. The same pattern can be seen for the distribution by the ability to speak French.
+```{r}
+embarr.long  %>% 
+  ggplot(aes(French,Value, fill=French)) +
+  geom_boxplot() +
+  facet_wrap(~speaker)+theme_bw()
+```
+From the plot it can be seen that speaker 4 recieves the highest marks whereas speaker 1, apeaker 2 and speaker 3 have quite the same results.
+```{r}
+ggplot(means,aes(x = questions,y = means)) + 
+    geom_bar(aes(fill = speaker),stat = "identity",position = "dodge")+ theme_bw()+labs(title = "Average values for each audio")
+```
+From the plot the ditrubition of values is shown for each audio with respect to the speaker. As an interesting fact it can be point out that the average values for Russian audios are lower than the average values for French audios (compare A1.1 and A2.1, B1.2 and B2.1).
+To have more detailed information the following plots can be considered. 
+```{r}
+embarr.long  %>% 
+  ggplot(aes(Education,Value, fill=Education)) +
+  geom_boxplot() +
+  facet_wrap(~Phrase)+theme_bw()
+```
+```{r}
+embarr.long  %>% 
+  ggplot(aes(Gender,Value, fill=Gender)) +
+  geom_boxplot() +
+  facet_wrap(~Phrase)+theme_bw()
+```
+```{r}
+embarr.long  %>% 
+  ggplot(aes(English,Value, fill=English)) +
+  geom_boxplot() +
+  facet_wrap(~Phrase)+theme_bw()
+```
+```{r}
+embarr.long  %>% 
+  ggplot(aes(French,Value, fill=French)) +
+  geom_boxplot() +
+  facet_wrap(~Phrase)+theme_bw()
+```
+
+To summurize these rusults the violin plot was built. This plot can be built for each phrase (the example is for phrase A2.1). The plot illustrates the ditrubution of the results for each audio according to the gender, the level of education and the ability to speak English or French.
+```{r}
+embarr %>% 
+  ggplot(aes(Education, A2.1, fill = Gender))+
+  geom_violin()+
+  facet_grid(English~French)+ theme_bw()
+```
+Also, the lmer was considered. 
+```{r}
+library(lme4)
+lm_r <- lmer(Value~Gender+Education+English+French+(1|Phrase), data=embarr.long)
+summary(lm_r)
+```
+For the seek of convinience the value of prediction was standardized.
+```{r}
+embarr.long$lm.predict <- predict(lm_r)
+for (i in 1:length(embarr.long$lm.predict)){
+  a <- embarr.long$lm.predict[i]
+  if (a > 0 && a <= 0.1)
+    embarr.long$lm.predict[i] <- 0
+  if (a > 0.1 && a <= 0.3)
+    embarr.long$lm.predict[i] <- 0.2
+  
+  if (a > 0.3 && a <= 0.5)
+    embarr.long$lm.predict[i] <- 0.4
+  
+  if (a > 0.5 && a <= 0.7)
+    embarr.long$lm.predict[i] <- 0.6
+  
+  if (a > 0.7 && a <= 0.9)
+    embarr.long$lm.predict[i] <- 0.8
+  
+  if (a > 0.9 && a <= 1)
+    embarr.long$lm.predict[i] <- 1
+}
+```
+```{r}
+embarr.long %>% ggplot(aes(lm.predict, Value)) + geom_point()
+```
+So as it is seen from the plot there is no correlation between values. 
+
+## Multi-factor analysis  
+At least two different methods have to be used. Please provide the output models summaries and graphs. Please evaluate your models (show and interpret relevant indicators such as classification accuracy, goodness of fit, classification power, inertia, variable significance, variable importance, etc.).   
+It is recommended to report, when needed, how did you fit the model, did you find any signs of overfitting, why do you believe that certain model is an optimal one, etc.
+
+### Linear Regression
+As we have the correlation between meanFrench and meanRussian we can build linear regression model.
+
+```
+```
+To add, the t-test shows that Age and English are significant we can build the following model.
+
+### PCA
+
+## Linguistic interpretation of the quantitative results  
+It is diffucult to comment on statistical results as it was seen that the data was not accurate enought. It can be concluded, that the characteristics of the listerner do not influence on their ability to understand the embarrassment. To add, it does not matterif the listener understands the meaning of the phrase so embarrassment can be found not in word but also in intonation. 
+## Discussion on data distribution and quantitative methods in use   
+It is suggested to provide the dataset that would be more accurate.To add, as it was pointed out it the comments to the survery it is diffucult to fake the embarrassment and only audios might be not enought to spot the emotion. So it can be a good idea to replace the audio with videos.Also, it might be a good idea to study not only listeners characteristics but also speaker characteristics as it might show that different speakers express the emotion in the different way.
